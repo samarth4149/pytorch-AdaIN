@@ -12,6 +12,7 @@ from tqdm import tqdm
 
 import net
 from sampler import InfiniteSamplerWrapper
+from torchvision.datasets import ImageFolder
 
 cudnn.benchmark = True
 Image.MAX_IMAGE_PIXELS = None  # Disable DecompressionBombError
@@ -97,8 +98,8 @@ network.to(device)
 content_tf = train_transform()
 style_tf = train_transform()
 
-content_dataset = FlatFolderDataset(args.content_dir, content_tf)
-style_dataset = FlatFolderDataset(args.style_dir, style_tf)
+content_dataset = ImageFolder(args.content_dir, content_tf)
+style_dataset = ImageFolder(args.style_dir, style_tf)
 
 content_iter = iter(data.DataLoader(
     content_dataset, batch_size=args.batch_size,
@@ -113,8 +114,8 @@ optimizer = torch.optim.Adam(network.decoder.parameters(), lr=args.lr)
 
 for i in tqdm(range(args.max_iter)):
     adjust_learning_rate(optimizer, iteration_count=i)
-    content_images = next(content_iter).to(device)
-    style_images = next(style_iter).to(device)
+    content_images, _ = next(content_iter).to(device)
+    style_images, _ = next(style_iter).to(device)
     loss_c, loss_s = network(content_images, style_images)
     loss_c = args.content_weight * loss_c
     loss_s = args.style_weight * loss_s
