@@ -129,8 +129,9 @@ decoder.to(device)
 content_tf = test_transform(args.content_size, args.crop)
 style_tf = test_transform(args.style_size, args.crop)
 
-for content_path in tqdm(content_paths, total=len(content_paths)):
+for content_path, style_path in tqdm(zip(content_paths, style_paths), total=len(content_paths)):
     if do_interpolation:  # one content image, N style image
+        raise Exception('do_interpolation not supported now')
         style = torch.stack([style_tf(Image.open(str(p)).convert('RGB')) for p in style_paths])
         content = content_tf(Image.open(str(content_path)).convert('RGB')) \
             .unsqueeze(0).expand_as(style)
@@ -145,18 +146,18 @@ for content_path in tqdm(content_paths, total=len(content_paths)):
         save_image(output, str(output_name))
 
     else:  # process one content and one style
-        for style_path in style_paths:
-            content = content_tf(Image.open(str(content_path)).convert('RGB'))
-            style = style_tf(Image.open(str(style_path)).convert('RGB'))
-            if args.preserve_color:
-                style = coral(style, content)
-            style = style.to(device).unsqueeze(0)
-            content = content.to(device).unsqueeze(0)
-            with torch.no_grad():
-                output = style_transfer(vgg, decoder, content, style,
-                                        args.alpha)
-            output = output.cpu()
+        # for style_path in style_paths:
+        content = content_tf(Image.open(str(content_path)).convert('RGB'))
+        style = style_tf(Image.open(str(style_path)).convert('RGB'))
+        if args.preserve_color:
+            style = coral(style, content)
+        style = style.to(device).unsqueeze(0)
+        content = content.to(device).unsqueeze(0)
+        with torch.no_grad():
+            output = style_transfer(vgg, decoder, content, style,
+                                    args.alpha)
+        output = output.cpu()
 
-            output_name = output_dir / '{:s}_stylized_{:s}{:s}'.format(
-                content_path.stem, style_path.stem, args.save_ext)
-            save_image(output, str(output_name))
+        output_name = output_dir / '{:s}_stylized_{:s}{:s}'.format(
+            content_path.stem, style_path.stem, args.save_ext)
+        save_image(output, str(output_name))
