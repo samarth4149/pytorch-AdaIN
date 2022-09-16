@@ -9,6 +9,7 @@ from torchvision.utils import save_image
 
 import net
 from function import adaptive_instance_normalization, coral
+from tqdm import tqdm
 
 
 def test_transform(size, crop):
@@ -128,7 +129,7 @@ decoder.to(device)
 content_tf = test_transform(args.content_size, args.crop)
 style_tf = test_transform(args.style_size, args.crop)
 
-for content_path in content_paths:
+for content_path in tqdm(content_paths, total=len(content_paths)):
     if do_interpolation:  # one content image, N style image
         style = torch.stack([style_tf(Image.open(str(p)).convert('RGB')) for p in style_paths])
         content = content_tf(Image.open(str(content_path)).convert('RGB')) \
