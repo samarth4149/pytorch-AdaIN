@@ -130,8 +130,8 @@ style_tf = test_transform(args.style_size, args.crop)
 
 for content_path in content_paths:
     if do_interpolation:  # one content image, N style image
-        style = torch.stack([style_tf(Image.open(str(p))) for p in style_paths])
-        content = content_tf(Image.open(str(content_path))) \
+        style = torch.stack([style_tf(Image.open(str(p)).convert('RGB')) for p in style_paths])
+        content = content_tf(Image.open(str(content_path)).convert('RGB')) \
             .unsqueeze(0).expand_as(style)
         style = style.to(device)
         content = content.to(device)
@@ -145,8 +145,8 @@ for content_path in content_paths:
 
     else:  # process one content and one style
         for style_path in style_paths:
-            content = content_tf(Image.open(str(content_path)))
-            style = style_tf(Image.open(str(style_path)))
+            content = content_tf(Image.open(str(content_path)).convert('RGB'))
+            style = style_tf(Image.open(str(style_path)).convert('RGB'))
             if args.preserve_color:
                 style = coral(style, content)
             style = style.to(device).unsqueeze(0)
