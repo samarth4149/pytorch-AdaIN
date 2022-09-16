@@ -6,7 +6,8 @@ import torch.backends.cudnn as cudnn
 import torch.nn as nn
 import torch.utils.data as data
 from PIL import Image, ImageFile
-from tensorboardX import SummaryWriter
+# from tensorboardX import SummaryWriter
+import wandb
 from torchvision import transforms
 from tqdm import tqdm
 
@@ -67,8 +68,10 @@ parser.add_argument('--vgg', type=str, default='models/vgg_normalised.pth')
 # training options
 parser.add_argument('--save_dir', default='./experiments',
                     help='Directory to save the model')
-parser.add_argument('--log_dir', default='./logs',
-                    help='Directory to save the log')
+parser.add_argument('--expt_name', default='tdw2in_adain')
+parser.add_argument('--use_wandb', action='store_true')
+# parser.add_argument('--log_dir', default='./logs',
+#                     help='Directory to save the log')
 parser.add_argument('--lr', type=float, default=1e-4)
 parser.add_argument('--lr_decay', type=float, default=5e-5)
 parser.add_argument('--max_iter', type=int, default=160000)
@@ -76,15 +79,20 @@ parser.add_argument('--batch_size', type=int, default=8)
 parser.add_argument('--style_weight', type=float, default=10.0)
 parser.add_argument('--content_weight', type=float, default=1.0)
 parser.add_argument('--n_threads', type=int, default=16)
+parser.add_argument('--log_interval', type=int, default=100)
 parser.add_argument('--save_model_interval', type=int, default=10000)
 args = parser.parse_args()
 
 device = torch.device('cuda')
-save_dir = Path(args.save_dir)
+save_dir = Path(args.save_dir) / args.expt_name
 save_dir.mkdir(exist_ok=True, parents=True)
-log_dir = Path(args.log_dir)
-log_dir.mkdir(exist_ok=True, parents=True)
-writer = SummaryWriter(log_dir=str(log_dir))
+# log_dir = Path(args.log_dir)
+# log_dir.mkdir(exist_ok=True, parents=True)
+# writer = SummaryWriter(log_dir=str(log_dir))
+if args.use_wandb:
+    wandb.init(
+        project='pytorch-adain', name=args.expt_name, 
+        config=args, dir=str(save_dir), reinit=True)
 
 decoder = net.decoder
 vgg = net.vgg
@@ -112,26 +120,36 @@ style_iter = iter(data.DataLoader(
 
 optimizer = torch.optim.Adam(network.decoder.parameters(), lr=args.lr)
 
-for i in tqdm(range(args.max_iter)):
-    adjust_learning_rate(optimizer, iteration_count=i)
-    content_images, _ = next(content_iter).to(device)
-    style_images, _ = next(style_iter).to(device)
-    loss_c, loss_s = network(content_images, style_images)
-    loss_c = args.content_weight * loss_c
-    loss_s = args.style_weight * loss_s
-    loss = loss_c + loss_s
+with tqdm(total=args.max_iter) as pbar:
+    for i in range(args.max_iter):
+        adjust_learning_rate(optimizer, iteration_count=i)
+        content_images, _ = next(content_iter).to(device)
+        style_images, _ = next(style_iter).to(device)
+        loss_c, loss_s = network(content_images, style_images)
+        loss_c = args.content_weight * loss_c
+        loss_s = args.style_weight * loss_s
+        loss = loss_c + loss_s
 
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
 
-    writer.add_scalar('loss_content', loss_c.item(), i + 1)
-    writer.add_scalar('loss_style', loss_s.item(), i + 1)
+        pbar.set_description(f'LC:{loss_c.item():.4f} LS:{loss_s.item():.4f}')
+        if args.use_wandb and (args.log_interval > 0 and (i+1) % args.log_interval == 0):
+            wandb.log({
+                'Iter' : i+1,
+                'loss_content' : loss_c.item(),
+                'loss_style' : loss_s.item(),
+            })
+            
+        # writer.add_scalar('loss_content', loss_c.item(), i + 1)
+        # writer.add_scalar('loss_style', loss_s.item(), i + 1)
 
-    if (i + 1) % args.save_model_interval == 0 or (i + 1) == args.max_iter:
-        state_dict = net.decoder.state_dict()
-        for key in state_dict.keys():
-            state_dict[key] = state_dict[key].to(torch.device('cpu'))
-        torch.save(state_dict, save_dir /
-                   'decoder_iter_{:d}.pth.tar'.format(i + 1))
-writer.close()
+        if (i + 1) % args.save_model_interval == 0 or (i + 1) == args.max_iter:
+            state_dict = net.decoder.state_dict()
+            for key in state_dict.keys():
+                state_dict[key] = state_dict[key].to(torch.device('cpu'))
+            torch.save(state_dict, save_dir /
+                    'decoder_iter_{:d}.pth.tar'.format(i + 1))
+        pbar.update(1)
+# writer.close()
