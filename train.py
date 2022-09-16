@@ -123,8 +123,10 @@ optimizer = torch.optim.Adam(network.decoder.parameters(), lr=args.lr)
 with tqdm(total=args.max_iter) as pbar:
     for i in range(args.max_iter):
         adjust_learning_rate(optimizer, iteration_count=i)
-        content_images, _ = next(content_iter).to(device)
-        style_images, _ = next(style_iter).to(device)
+        content_images, _ = next(content_iter)
+        style_images, _ = next(style_iter)
+        content_images = content_images.to(device)
+        style_images = style_images.to(device)
         loss_c, loss_s = network(content_images, style_images)
         loss_c = args.content_weight * loss_c
         loss_s = args.style_weight * loss_s
