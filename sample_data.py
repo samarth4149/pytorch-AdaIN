@@ -24,10 +24,10 @@ if __name__ == '__main__':
     folder = ImageFolder(src_path)
     img_paths = [s[0] for s in folder.samples]
     idxs = RNG.permutation(len(img_paths))[:args.num_imgs]
+    os.makedirs(args.dest_name, exist_ok=True)
     
     for idx in tqdm(idxs):
         sample = img_paths[idx]
         fpath = Path(sample)
         write_path = Path(args.dest_name) / fpath.name
         shutil.copyfile(fpath, write_path)
-            
