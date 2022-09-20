@@ -15,6 +15,7 @@ from torchvision.datasets import ImageFolder
 from torchvision.datasets.folder import default_loader
 from torch.utils.data import Subset
 from typing import Optional, Callable, Any
+import numpy as np
 
 
 def test_transform(size, crop):
@@ -99,9 +100,11 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 output_dir = Path(args.output)
 output_dir.mkdir(exist_ok=True, parents=True)
 
+RNG = np.random.RandomState(44)
+
 content_dataset = ImageFolderwPaths(args.content_dir, transform=test_transform(args.content_size, args.crop))
 style_dataset = ImageFolderwPaths(args.style_dir, transform=test_transform(args.style_size, args.crop))
-subset_idxs = torch.uniform(0, len(style_dataset), (len(content_dataset),))
+subset_idxs = RNG.randint(0, len(style_dataset), (len(content_dataset),))
 style_dataset = Subset(style_dataset, subset_idxs)
 
 # content_loader = torch.utils.data.DataLoader(
