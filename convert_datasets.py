@@ -144,6 +144,6 @@ for i in tqdm(range(len(content_dataset)), total=len(content_dataset)):
     output = output.cpu()
 
     content_path = Path(content_path)
-    output_name = output_dir / content_path.parent / (content_path.name + args.save_ext)
+    output_name = output_dir / content_path.parent.name / (content_path.stem + args.save_ext)
     os.makedirs(output_name.parent, exist_ok=True)
     save_image(output, str(output_name))
