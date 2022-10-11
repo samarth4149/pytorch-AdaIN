@@ -113,8 +113,8 @@ style_tf = train_transform()
 RNG = np.random.RandomState(44) 
 content_dataset = ImageFolder(args.content_dir, content_tf)
 style_dataset = ImageFolder(args.style_dir, style_tf)
-content_subset_idxs = RNG.random.permutation(len(content_dataset))[:args.num_imgs]
-style_subset_idxs = RNG.random.permutation(len(style_dataset))[:args.num_imgs]
+content_subset_idxs = RNG.permutation(len(content_dataset))[:args.num_imgs]
+style_subset_idxs = RNG.permutation(len(style_dataset))[:args.num_imgs]
 content_dataset = Subset(content_dataset, content_subset_idxs)
 style_dataset = Subset(style_dataset, style_subset_idxs)
 
