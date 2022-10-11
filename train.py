@@ -14,6 +14,9 @@ from tqdm import tqdm
 import net
 from sampler import InfiniteSamplerWrapper
 from torchvision.datasets import ImageFolder
+from torch.utils.data import Subset
+
+import numpy as np
 
 cudnn.benchmark = True
 Image.MAX_IMAGE_PIXELS = None  # Disable DecompressionBombError
@@ -81,6 +84,7 @@ parser.add_argument('--content_weight', type=float, default=1.0)
 parser.add_argument('--n_threads', type=int, default=16)
 parser.add_argument('--log_interval', type=int, default=100)
 parser.add_argument('--save_model_interval', type=int, default=10000)
+parser.add_argument('--num_imgs', type=int, default=10000)
 args = parser.parse_args()
 
 device = torch.device('cuda')
@@ -106,8 +110,13 @@ network.to(device)
 content_tf = train_transform()
 style_tf = train_transform()
 
+RNG = np.random.RandomState(44) 
 content_dataset = ImageFolder(args.content_dir, content_tf)
 style_dataset = ImageFolder(args.style_dir, style_tf)
+content_subset_idxs = RNG.random.permutation(len(content_dataset))[:args.num_imgs]
+style_subset_idxs = RNG.random.permutation(len(style_dataset))[:args.num_imgs]
+content_dataset = Subset(content_dataset, content_subset_idxs)
+style_dataset = Subset(style_dataset, style_subset_idxs)
 
 content_iter = iter(data.DataLoader(
     content_dataset, batch_size=args.batch_size,
