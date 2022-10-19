@@ -85,6 +85,7 @@ parser.add_argument('--output', type=str, default='output',
                     help='Directory to save the output image(s)')
 parser.add_argument('--batch_size', type=int, default=16)
 parser.add_argument('--num_workers', type=int, default=8)
+parser.add_argument('--num_style_imgs', type=int, default=10000)
 
 # Advanced options
 parser.add_argument('--preserve_color', action='store_true',
@@ -104,7 +105,8 @@ RNG = np.random.RandomState(44)
 
 content_dataset = ImageFolderwPaths(args.content_dir, transform=test_transform(args.content_size, args.crop))
 style_dataset = ImageFolderwPaths(args.style_dir, transform=test_transform(args.style_size, args.crop))
-subset_idxs = RNG.randint(0, len(style_dataset), (len(content_dataset),))
+subset_idxs = RNG.choice(len(style_dataset), args.num_style_imgs, replace=False)
+subset_idxs = RNG.choice(subset_idxs, (len(content_dataset),), replace=True)
 style_dataset = Subset(style_dataset, subset_idxs)
 
 # content_loader = torch.utils.data.DataLoader(
